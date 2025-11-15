@@ -1,59 +1,75 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, Request, UseInterceptors, UploadedFile, ParseIntPipe, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  Delete,
+  UploadedFile,
+  UseInterceptors,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
+import { Req } from '@nestjs/common';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { DataSource } from 'typeorm';
-import { User } from '../user.entity';
 
 @Controller('products')
 export class ProductsController {
-  constructor(
-    private readonly products: ProductsService,
-    @Inject(DataSource) private readonly dataSource: DataSource,
-  ) {}
+  constructor(private readonly productsService: ProductsService) {}
 
-  @Post()
-  async create(@Body() dto: CreateProductDto, @Request() req) {
-    let farmerId = req?.user?.id;
-    if (!farmerId) {
-      // find any existing user in the users table to use as farmer
-      const userRepo = this.dataSource.getRepository(User);
-      const anyUser = await userRepo.findOne({ where: {} });
-      if (anyUser) farmerId = anyUser.id;
+  @Post('upload')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          callback(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  async uploadProductImage(
+    @Body() body: CreateProductDto,
+    @Req() req: any,
+  ) {
+    // AnyFilesInterceptor populates `req.files`
+    const files: any[] = req?.files || [];
+    const file = files[0];
+    // ensure uploads folder exists to avoid silent failures
+    if (!existsSync('./uploads')) {
+      mkdirSync('./uploads', { recursive: true });
     }
 
-    if (!farmerId) {
-      return { error: 'No farmer available. Create a user first.' };
+    // helpful debug log — remove in production
+    console.log('uploadProductImage - received file:', !!file, file && file.filename);
+
+    if (!file) {
+      return { error: 'No file received. Make sure the request is multipart/form-data and contains a file.' };
     }
 
-    return this.products.create(dto, farmerId);
+    return this.productsService.create({
+      ...body,
+      imageUrl: file.filename,
+    });
   }
 
   @Get()
   findAll() {
-    return this.products.findAll();
+    return this.productsService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.products.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
-    return this.products.update(id, dto);
+    return this.productsService.findOne(id);
   }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.products.remove(id);
+    return this.productsService.remove(id);
   }
-  
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
-  upload(@UploadedFile() file: any) {
-    return { url: `/uploads/${file.filename}` };
-  }
-
 }

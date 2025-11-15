@@ -12,11 +12,18 @@ export class ProductsService {
     private repo: Repository<Product>,
   ) {}
 
-  create(dto: CreateProductDto, farmerId: number) {
-    return this.repo.save({
-      ...dto,
-      farmer: { id: farmerId }
-    });
+  // Overload signatures: support create(data:any) or create(dto, farmerId)
+  create(data: any): Promise<Product>;
+  create(dto: CreateProductDto, farmerId: number): Promise<any>;
+  async create(a: any, b?: any): Promise<any> {
+    // If called with (dto, farmerId)
+    if (b !== undefined) {
+      return this.repo.save({ ...a, farmer: { id: b } });
+    }
+
+    // If called with single `data` object
+    const product = this.repo.create(a);
+    return this.repo.save(product);
   }
 
   findAll() {
