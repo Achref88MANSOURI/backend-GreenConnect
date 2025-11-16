@@ -8,6 +8,8 @@ import { DataSource } from 'typeorm';
 import { User, UserRole } from './users/entities/user.entity';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { OrdersModule } from './orders/orders.module';
     ProductsModule,
     CartModule,
     OrdersModule,
+    EquipmentModule,
+    BookingModule,
   ],
   controllers: [],
   providers: [

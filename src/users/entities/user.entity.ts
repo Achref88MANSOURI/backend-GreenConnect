@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Equipment } from '../../equipment/entities/equipment.entity';
+import { Booking } from 'src/booking/entities/booking.entity';
 
 export enum UserRole {
   FARMER = 'farmer',
@@ -28,4 +31,10 @@ export class User {
     default: UserRole.BUYER,
   })
   role: UserRole;
+
+  // 👉 Relation correcte
+  @OneToMany(() => Equipment, (equipment) => equipment.owner)
+  equipments: Equipment[];
+  @OneToMany(() => Booking, (booking) => booking.user)
+  bookings: Booking[];
 }
