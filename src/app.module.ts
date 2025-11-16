@@ -5,8 +5,9 @@ import { ProductsModule } from './products/products.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { DataSource } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRole } from './users/entities/user.entity';
 import { CartModule } from './cart/cart.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CartModule } from './cart/cart.module';
     AuthModule,
     ProductsModule,
     CartModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [
@@ -45,7 +47,7 @@ import { CartModule } from './cart/cart.module';
           const repo = dataSource.getRepository(User);
           const exists = await repo.findOne({ where: { id: 1 } });
           if (!exists) {
-            const u = repo.create({ firstName: 'Seed', lastName: 'User', isActive: true });
+            const u = repo.create({ name: 'Seed User', email: 'seed@example.com', password: 'password', role: UserRole.BUYER });
             const saved = await repo.save(u);
             console.log('Seed user created with id', saved.id);
           } else {

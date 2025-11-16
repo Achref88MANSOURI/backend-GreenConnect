@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { Product } from '../products/entities/product.entity';
-import { User } from '../user.entity';
+import { User } from '../users/entities/user.entity';
 import { AddItemDto } from './dto/add-item.dto';
 
 
@@ -22,7 +22,7 @@ export class CartService {
 	) {}
 
 	async getCartForUser(userId: number) {
-		let cart = await this.cartRepo.findOne({ where: { user: { id: userId } }, relations: ['items', 'items.product'] });
+		let cart = await this.cartRepo.findOne({ where: { user: { id: userId } }, relations: ['user', 'items', 'items.product'] });
 		if (!cart) {
 			const user = await this.userRepo.findOne({ where: { id: userId } });
 			if (!user) throw new NotFoundException('User not found');

@@ -1,14 +1,15 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Req, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Req, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AddItemDto } from './dto/add-item.dto';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('cart')
+@UseGuards(JwtAuthGuard)
 export class CartController {
 	constructor(private readonly cartService: CartService) {}
 
-	// For now we don't implement auth; userId falls back to 1 for local testing
 	private getUserId(req: any) {
-		return req?.user?.id ?? 1;
+		return req.user.id;
 	}
 
 	@Get()
