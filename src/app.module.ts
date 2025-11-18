@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { BookingModule } from './booking/booking.module';
+import { TawsselModule } from './tawssel/tawssel.module'; // <-- NOUVEL IMPORT
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { BookingModule } from './booking/booking.module';
     OrdersModule,
     EquipmentModule,
     BookingModule,
+    TawsselModule, // <-- AJOUT DU MODULE TAWSSEL
   ],
   controllers: [],
   providers: [
