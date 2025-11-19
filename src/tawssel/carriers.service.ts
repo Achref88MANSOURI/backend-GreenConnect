@@ -28,8 +28,20 @@ export class CarriersService {
    */
   async findAll(): Promise<Carrier[]> {
     // Dans un scénario réel, vous appliqueriez des filtres (WHERE clause)
+    // Retourner les champs pertinents pour la logique de suggestion
     return this.carrierRepository.find({
-      select: ['id', 'companyName', 'vehicleType', 'averageRating', 'pricePerKm'],
+      select: [
+        'id',
+        'companyName',
+        'vehicleType',
+        'averageRating',
+        'pricePerKm',
+        'pricePerTonne',
+        'capacity_kg',
+        'status',
+        'serviceZones',
+        'availability',
+      ],
     });
   }
 

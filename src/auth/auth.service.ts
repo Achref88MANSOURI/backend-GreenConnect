@@ -8,12 +8,15 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { CarriersService } from '../tawssel/carriers.service';
+import { UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly carriersService: CarriersService,
   ) {}
 
   // REGISTER
@@ -25,10 +28,33 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    return this.usersService.create({
+    const created = await this.usersService.create({
       ...dto,
       password: hashedPassword,
     });
+
+    // If the new user registered as a transporter, create a minimal Carrier profile
+    try {
+      if (dto.role === UserRole.TRANSPORTER) {
+        const carrierPayload: any = {
+          companyName: `Carrier-${created.id}`,
+          contactEmail: created.email,
+          userId: String(created.id),
+          vehicleType: 'Not specified',
+          capacity_kg: 0,
+          serviceZones: [],
+          pricePerKm: 0,
+          pricePerTonne: 0,
+          availability: [],
+        };
+        await this.carriersService.create(carrierPayload);
+      }
+    } catch (err) {
+      // fail silently for now but log in console
+      console.warn('Failed to auto-create carrier profile:', err?.message || err);
+    }
+
+    return created;
   }
 
   // LOGIN
