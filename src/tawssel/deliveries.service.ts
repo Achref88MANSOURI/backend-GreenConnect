@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Delivery } from './entities/delivery.entity';
@@ -114,7 +114,7 @@ export class DeliveriesService {
   /**
    * Enregistre l'évaluation du client et met à jour la note du transporteur.
    */
-  async submitReview(submitReviewDto: SubmitReviewDto): Promise<Delivery> {
+  async submitReview(submitReviewDto: SubmitReviewDto, reviewerId?: string): Promise<Delivery> {
     const { deliveryId, rating } = submitReviewDto;
 
     // 1. Trouver la livraison et le transporteur
@@ -133,6 +133,13 @@ export class DeliveriesService {
       throw new BadRequestException("Cette livraison a déjà été évaluée.");
     }
 
+
+    // Verify the reviewer is the booking owner
+    if (reviewerId && delivery.userId !== reviewerId) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à évaluer cette livraison.');
+    }
+
+
     const carrier = delivery.carrier;
 
     // 2. Mettre à jour l'enregistrement de la livraison
@@ -150,5 +157,19 @@ export class DeliveriesService {
     await this.carrierRepository.save(carrier);
 
     return delivery;
+  }
+
+  /**
+   * Met à jour le statut d'une livraison.
+   */
+  async updateStatus(id: string, status: string, actorId?: string): Promise<Delivery> {
+    const delivery = await this.deliveryRepository.findOne({ where: { id } });
+    if (!delivery) {
+      throw new NotFoundException(`Livraison ID ${id} introuvable.`);
+    }
+
+    // NOTE: You can add authorization checks here (owner, carrier user, or admin)
+    delivery.status = status;
+    return this.deliveryRepository.save(delivery);
   }
 }

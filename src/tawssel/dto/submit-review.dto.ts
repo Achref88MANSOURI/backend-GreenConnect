@@ -1,25 +1,27 @@
-import { IsUUID, IsNumber, Min, Max, IsOptional, IsString } from 'class-validator';
+import { IsUUID, IsNumber, Min, Max, IsOptional, IsString, IsInt, IsNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class SubmitReviewDto {
   // --- Identifiants ---
 
-  // L'ID de la livraison qui est évaluée. C'est la clé de liaison.
+  @IsNotEmpty() // Assurez-vous que l'ID de la livraison est requis
   @IsUUID()
   deliveryId: string;
 
-  // L'ID de l'utilisateur qui soumet l'évaluation (pour la sécurité).
+  @IsNotEmpty() // Assurez-vous que l'ID de l'évaluateur est requis
   @IsUUID()
   reviewerId: string;
 
   // --- Contenu de l'Évaluation ---
 
-  // Note donnée au transporteur (sur une échelle de 1 à 5, par exemple).
-  @IsNumber()
+  // NOTE: Utilisation de @Type pour s'assurer que le body JSON (qui lit la note comme string par défaut)
+  // est bien transformé en nombre avant la validation IsInt/Min/Max.
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(5)
   rating: number;
 
-  // Commentaire facultatif sur le service du transporteur.
   @IsOptional()
   @IsString()
   comment?: string;
