@@ -12,8 +12,8 @@ export class Equipment {
   @Column()
   name: string;
 
-  @Column()
-  type: string;
+  @Column({ nullable: true })
+  type?: string;
 
   @Column()
   pricePerDay: number;
