@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { BookingModule } from './booking/booking.module';
 import { TawsselModule } from './tawssel/tawssel.module'; // <-- NOUVEL IMPORT
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { TawsselModule } from './tawssel/tawssel.module'; // <-- NOUVEL IMPORT
     OrdersModule,
     EquipmentModule,
     BookingModule,
-    TawsselModule, // <-- AJOUT DU MODULE TAWSSEL
+    TawsselModule,
+    AdminModule, // <-- AJOUT DU MODULE TAWSSEL
   ],
   controllers: [],
   providers: [

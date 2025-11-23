@@ -38,6 +38,9 @@ export class User {
   @Column({ type: 'json', nullable: true })
   settings: any;
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -45,9 +48,9 @@ export class User {
   })
   role: UserRole;
 
-  // 👉 Relation correcte
   @OneToMany(() => Equipment, (equipment) => equipment.owner)
   equipments: Equipment[];
+
   @OneToMany(() => Booking, (booking) => booking.user)
   bookings: Booking[];
 
