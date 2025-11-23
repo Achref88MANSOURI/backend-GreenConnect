@@ -2,6 +2,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Equipment } from '../../equipment/entities/equipment.entity';
 import { Booking } from 'src/booking/entities/booking.entity';
+import { Notification } from './notification.entity';
 
 export enum UserRole {
   FARMER = 'farmer',
@@ -25,6 +26,18 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ nullable: true })
+  phoneNumber: string;
+
+  @Column({ nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  avatarUrl: string;
+
+  @Column({ type: 'json', nullable: true })
+  settings: any;
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -37,4 +50,7 @@ export class User {
   equipments: Equipment[];
   @OneToMany(() => Booking, (booking) => booking.user)
   bookings: Booking[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }
