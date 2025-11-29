@@ -4,12 +4,9 @@ import { Equipment } from '../../equipment/entities/equipment.entity';
 import { Booking } from 'src/booking/entities/booking.entity';
 import { Notification } from './notification.entity';
 
+// Simplified single role; keep enum for compatibility with existing frontend references
 export enum UserRole {
-  FARMER = 'farmer',
-  BUYER = 'buyer',
-  TRANSPORTER = 'transporter',
-  INVESTOR = 'investor',
-  ADMIN = 'admin',
+  USER = 'user',
 }
 
 @Entity()
@@ -44,7 +41,7 @@ export class User {
   @Column({
     type: 'simple-enum',
     enum: UserRole,
-    default: UserRole.BUYER,
+    default: UserRole.USER,
   })
   role: UserRole;
 

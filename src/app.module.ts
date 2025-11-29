@@ -47,7 +47,7 @@ import { AdminModule } from './admin/admin.module';
           const repo = dataSource.getRepository(User);
           const exists = await repo.findOne({ where: { id: 1 } });
           if (!exists) {
-            const u = repo.create({ name: 'Seed User', email: 'seed@example.com', password: 'password', role: UserRole.BUYER });
+            const u = repo.create({ name: 'Seed User', email: 'seed@example.com', password: 'password', role: UserRole.USER });
             const saved = await repo.save(u);
             console.log('Seed user created with id', saved.id);
           } else {
