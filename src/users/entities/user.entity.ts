@@ -35,14 +35,14 @@ export class User {
   @Column({ nullable: true })
   avatarUrl: string;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   settings: any;
 
   @Column({ default: true })
   isActive: boolean;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: UserRole,
     default: UserRole.BUYER,
   })

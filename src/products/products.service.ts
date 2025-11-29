@@ -30,6 +30,13 @@ export class ProductsService {
     return this.repo.find({ relations: ['farmer'] });
   }
 
+  mine(userId: number) {
+    return this.repo.find({
+      where: { farmer: { id: userId } },
+      relations: ['farmer'],
+    });
+  }
+
   findOne(id: number) {
     return this.repo.findOne({ where: { id }, relations: ['farmer'] });
   }

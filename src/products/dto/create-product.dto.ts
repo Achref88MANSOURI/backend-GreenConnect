@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProductDto {
@@ -15,4 +15,17 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  vendeur?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9\s-]{7,15}$/)
+  phoneNumber?: string;
 }

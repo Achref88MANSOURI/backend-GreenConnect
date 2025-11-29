@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn, RelationId } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity()
@@ -17,9 +17,23 @@ export class Product {
 
   @Column({ nullable: true })
   imageUrl: string;
+  
+   @Column({ nullable: true })
+  vendeur: string;
+ 
+  @Column({ nullable: true })
+  location: string;
 
- @ManyToOne(() => User)
- farmer: User;
+  @Column({ nullable: true })
+  phoneNumber: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'farmerId' })
+  farmer: User;
+
+  // Expose the foreign key directly without duplicating the column definition
+  @RelationId((product: Product) => product.farmer)
+  farmerId: number;
 
   @CreateDateColumn()
   createdAt: Date;

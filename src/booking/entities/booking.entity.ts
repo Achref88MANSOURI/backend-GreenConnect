@@ -15,14 +15,14 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'timestamp' })
+  @Column()
   startDate: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column()
   endDate: Date;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: BookingStatus,
     default: BookingStatus.PENDING,
   })

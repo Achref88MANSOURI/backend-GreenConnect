@@ -36,7 +36,7 @@ export class Delivery {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   distance_km: number; // Calculé pour la tarification
 
-  @Column('timestamp')
+  @Column()
   desiredDeliveryDate: Date; // Délai souhaité
 
   // --- Coût et Statut ---
@@ -53,6 +53,6 @@ export class Delivery {
   status: string; // Ex: PENDING, IN_TRANSIT, DELIVERED, CANCELED
 
   // Mises à jour du suivi (coordonnées GPS ou messages)
-  @Column('json', { nullable: true })
+  @Column('simple-json', { nullable: true })
   trackingUpdates: { timestamp: Date; location: string; message: string }[];
 }
