@@ -27,7 +27,7 @@ export class Product {
   @Column({ nullable: true })
   phoneNumber: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'farmerId' })
   farmer: User;
 

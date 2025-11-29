@@ -29,30 +29,14 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     const created = await this.usersService.create({
-      ...dto,
+      name: dto.name,
+      email: dto.email,
       password: hashedPassword,
+      role: UserRole.USER,
+      phoneNumber: dto.phoneNumber,
+      address: dto.address,
+      avatarUrl: dto.avatarUrl,
     });
-
-    // If the new user registered as a transporter, create a minimal Carrier profile
-    try {
-      if (dto.role === UserRole.TRANSPORTER) {
-        const carrierPayload: any = {
-          companyName: `Carrier-${created.id}`,
-          contactEmail: created.email,
-          userId: String(created.id),
-          vehicleType: 'Not specified',
-          capacity_kg: 0,
-          serviceZones: [],
-          pricePerKm: 0,
-          pricePerTonne: 0,
-          availability: [],
-        };
-        await this.carriersService.create(carrierPayload);
-      }
-    } catch (err) {
-      // fail silently for now but log in console
-      console.warn('Failed to auto-create carrier profile:', err?.message || err);
-    }
 
     return created;
   }

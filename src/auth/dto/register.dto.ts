@@ -11,8 +11,10 @@ export class RegisterDto {
   @MinLength(6)
   password: string;
 
+  // Role is now fixed to 'user'; keep field optional for backward compatibility
   @IsEnum(UserRole)
-  role: UserRole;
+  @IsOptional()
+  role?: UserRole;
 
   @IsOptional()
   @IsString()
