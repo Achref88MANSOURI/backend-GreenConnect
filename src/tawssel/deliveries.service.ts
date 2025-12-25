@@ -32,6 +32,12 @@ export class DeliveriesService {
     // 2. Trouver tous les transporteurs éligibles
     const availableCarriers = await this.carriersService.findAll(); // Récupérer tous les transporteurs
 
+    // Ne pas lever une erreur ici; retourner une liste vide pour que le frontend
+    // affiche un message convivial "Aucun transporteur disponible"
+    if (!availableCarriers || availableCarriers.length === 0) {
+      return [];
+    }
+
     // 3. Filtrage basé sur les critères de la demande (Capacité, Zones, Disponibilité)
     const suggestions = availableCarriers
       .filter(c => c.capacity_kg >= dto.weight_kg) // Filtrer par capacité
@@ -55,6 +61,7 @@ export class DeliveriesService {
       // 5. Trier par coût ou par évaluation (Optimisation)
       .sort((a, b) => a.estimatedCost - b.estimatedCost);
 
+    // Retourner la liste (possiblement vide). Le frontend gère l'affichage.
     return suggestions;
   }
 
@@ -80,6 +87,7 @@ export class DeliveriesService {
 
     const newDelivery = this.deliveryRepository.create({
       ...createDeliveryDto,
+      desiredDeliveryDate: new Date(createDeliveryDto.desiredDeliveryDate),
       distance_km,
       totalCost,
       status: 'PENDING_PICKUP', // Statut initial
@@ -95,7 +103,7 @@ export class DeliveriesService {
   /**
    * Récupère les informations et le statut d'une livraison pour le suivi (Page 28).
    */
-  async trackDelivery(id: string): Promise<Delivery> {
+  async trackDelivery(id: number): Promise<Delivery> {
     const delivery = await this.deliveryRepository.findOne({ 
       where: { id },
       relations: ['carrier'], // Inclure les infos du transporteur pour le suivi
@@ -114,7 +122,7 @@ export class DeliveriesService {
   /**
    * Enregistre l'évaluation du client et met à jour la note du transporteur.
    */
-  async submitReview(submitReviewDto: SubmitReviewDto, reviewerId?: string): Promise<Delivery> {
+  async submitReview(submitReviewDto: SubmitReviewDto, reviewerId?: number): Promise<Delivery> {
     const { deliveryId, rating } = submitReviewDto;
 
     // 1. Trouver la livraison et le transporteur
@@ -162,7 +170,7 @@ export class DeliveriesService {
   /**
    * Met à jour le statut d'une livraison.
    */
-  async updateStatus(id: string, status: string, actorId?: string): Promise<Delivery> {
+  async updateStatus(id: number, status: string, actorId?: number): Promise<Delivery> {
     const delivery = await this.deliveryRepository.findOne({ where: { id } });
     if (!delivery) {
       throw new NotFoundException(`Livraison ID ${id} introuvable.`);
@@ -171,5 +179,16 @@ export class DeliveriesService {
     // NOTE: You can add authorization checks here (owner, carrier user, or admin)
     delivery.status = status;
     return this.deliveryRepository.save(delivery);
+  }
+
+  /**
+   * Récupère les livraisons de l'utilisateur authentifié.
+   */
+  async findMine(userId: number): Promise<Delivery[]> {
+    return this.deliveryRepository.find({
+      where: { userId },
+      relations: ['carrier'],
+      order: { id: 'DESC' },
+    });
   }
 }

@@ -1,10 +1,11 @@
 // Utilisez TypeORM pour la persistance des données
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('carriers')
 export class Carrier {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   // --- Authentification / Profil ---
 
@@ -14,9 +15,13 @@ export class Carrier {
   @Column()
   contactEmail: string;
 
-  // L'utilisateur lié à ce transporteur (si vous avez un module 'users')
+  // L'utilisateur lié à ce transporteur
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
   @Column()
-  userId: string; 
+  userId: number; 
 
   // --- Fonctionnalités - Transporteurs ---
 

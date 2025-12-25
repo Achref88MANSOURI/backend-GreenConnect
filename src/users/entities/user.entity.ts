@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Equipment } from '../../equipment/entities/equipment.entity';
-import { Booking } from 'src/booking/entities/booking.entity';
+import { Booking } from '../../booking/entities/booking.entity';
 import { Notification } from './notification.entity';
 
 // Simplified single role; keep enum for compatibility with existing frontend references
 export enum UserRole {
   USER = 'user',
+  FARMER = 'farmer',
+  BUYER = 'buyer',
+  CARRIER = 'carrier',
+  INVESTOR = 'investor',
+  ADMIN = 'admin',
 }
 
 @Entity()
@@ -44,6 +49,10 @@ export class User {
     default: UserRole.USER,
   })
   role: UserRole;
+
+  // Multi-role support per specification (RBAC with multiple profiles)
+  @Column({ type: 'simple-array', nullable: true })
+  roles?: string[];
 
   @OneToMany(() => Equipment, (equipment) => equipment.owner)
   equipments: Equipment[];

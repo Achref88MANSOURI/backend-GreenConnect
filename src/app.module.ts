@@ -2,6 +2,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { ProductsModule } from './products/products.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -11,13 +13,20 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { BookingModule } from './booking/booking.module';
-import { TawsselModule } from './tawssel/tawssel.module'; // <-- NOUVEL IMPORT
+import { TawsselModule } from './tawssel/tawssel.module';
 import { AdminModule } from './admin/admin.module';
+import { InvestmentsModule } from './investments/investments.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+
+    // Serve static assets from the frontend public folder (safe in dev)
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'front-end', 'public'),
+      exclude: ['/api/(.*)'],
     }),
 
     TypeOrmModule.forRoot({
@@ -35,7 +44,8 @@ import { AdminModule } from './admin/admin.module';
     EquipmentModule,
     BookingModule,
     TawsselModule,
-    AdminModule, // <-- AJOUT DU MODULE TAWSSEL
+    InvestmentsModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
-import { Equipment } from 'src/equipment/entities/equipment.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, RelationId } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Equipment } from '../../equipment/entities/equipment.entity';
 
 export enum BookingStatus {
   PENDING = 'pending',
@@ -30,6 +30,9 @@ export class Booking {
 
   @ManyToOne(() => User, (user) => user.bookings)
   user: User;
+
+  @RelationId((booking: Booking) => booking.user)
+  userId: number;
 
   @ManyToOne(() => Equipment, (eq) => eq.bookings, { onDelete: 'CASCADE' })
   equipment: Equipment;

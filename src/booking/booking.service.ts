@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking, BookingStatus } from './entities/booking.entity';
-import { Equipment } from 'src/equipment/entities/equipment.entity';
+import { Equipment } from '../equipment/entities/equipment.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class BookingService {
@@ -24,6 +24,28 @@ export class BookingService {
 
     if (eq.owner.id === user.id) {
       throw new ForbiddenException('You cannot book your own equipment');
+    }
+
+    // Prevent double bookings: check for overlap against PENDING or APPROVED
+    const overlapping = await this.repo.find({
+      where: {
+        equipment: { id: eqId },
+      },
+      relations: ['equipment'],
+    });
+
+    const reqStart = new Date(dto.startDate).getTime();
+    const reqEnd = new Date(dto.endDate).getTime();
+    const hasOverlap = overlapping.some(b => {
+      const bStart = new Date(b.startDate).getTime();
+      const bEnd = new Date(b.endDate).getTime();
+      const isActive = b.status === BookingStatus.PENDING || b.status === BookingStatus.APPROVED;
+      // Overlap if ranges intersect
+      return isActive && Math.max(bStart, reqStart) < Math.min(bEnd, reqEnd);
+    });
+
+    if (hasOverlap) {
+      throw new ConflictException('Equipment is already booked for the requested dates');
     }
 
     const booking = this.repo.create({

@@ -1,16 +1,16 @@
-import { IsUUID, IsNumber, Min, Max, IsOptional, IsString, IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNumber, Min, Max, IsOptional, IsString, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SubmitReviewDto {
   // --- Identifiants ---
 
-  @IsNotEmpty() // Assurez-vous que l'ID de la livraison est requis
-  @IsUUID()
-  deliveryId: string;
+  @IsNotEmpty()
+  @IsInt()
+  deliveryId: number;
 
-  @IsNotEmpty() // Assurez-vous que l'ID de l'évaluateur est requis
-  @IsUUID()
-  reviewerId: string;
+  @IsNotEmpty()
+  @IsInt()
+  reviewerId: number;
 
   // --- Contenu de l'Évaluation ---
 

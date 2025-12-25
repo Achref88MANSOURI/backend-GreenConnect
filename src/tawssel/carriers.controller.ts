@@ -1,5 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, HttpStatus, HttpCode, UseGuards, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, Post, Put, Body, Param, HttpStatus, HttpCode, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
 import { CarriersService } from './carriers.service';
 import { CreateCarrierDto } from './dto/create-carrier.dto';
 import { UpdateCarrierDto } from './dto/update-carrier.dto';
@@ -27,7 +26,7 @@ export class CarriersController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   registerAsCarrier(
-    @Req() req: Request & { user?: { id?: string } },
+    @Req() req,
     @Body() dto: CreateCarrierRegistrationDto,
   ): Promise<Carrier> {
     const payload: any = { ...dto, userId: req.user?.id };
@@ -45,7 +44,7 @@ export class CarriersController {
   // --- 3. Profil Transporteur (Page 25) ---
   // Route: GET /carriers/{id}
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Carrier> {
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<Carrier> {
     return this.carriersService.findOne(id);
   }
   
@@ -53,7 +52,7 @@ export class CarriersController {
   // Route: PUT /carriers/{id}
   @Put(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCarrierDto: UpdateCarrierDto,
   ): Promise<Carrier> {
     return this.carriersService.update(id, updateCarrierDto);

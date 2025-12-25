@@ -27,6 +27,16 @@ export class Product {
   @Column({ nullable: true })
   phoneNumber: string;
 
+  // Advanced marketplace fields per specification
+  @Column({ type: 'date', nullable: true })
+  harvestDate?: Date;
+
+  @Column({ type: 'int', nullable: true })
+  qualityScore?: number; // 0-100
+
+  @Column('simple-array', { nullable: true })
+  certifications?: string[]; // e.g., Bio, GlobalGAP
+
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'farmerId' })
   farmer: User;

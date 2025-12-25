@@ -1,8 +1,7 @@
-import { Controller, Get, Post, Patch, Body, Param, HttpStatus, HttpCode, UseGuards, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, Post, Patch, Body, Param, HttpStatus, HttpCode, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
 import { DeliveriesService } from './deliveries.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
-import { SubmitReviewDto } from './dto/submit-review.dto'; // DTO pour la soumission d'évaluation
+import { SubmitReviewDto } from './dto/submit-review.dto';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 
@@ -18,7 +17,7 @@ export class DeliveriesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   getSuggestions(
-    @Req() req: Request & { user?: { id?: string } },
+    @Req() req,
     @Body() createDeliveryDto: CreateDeliveryDto,
   ): Promise<any[]> {
     // Attach the authenticated user id to the DTO for server-side use
@@ -32,7 +31,7 @@ export class DeliveriesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   submitReview(
-    @Req() req: Request & { user?: { id?: string } },
+    @Req() req,
     @Body() submitReviewDto: SubmitReviewDto,
   ): Promise<any> {
     const reviewerId = req.user?.id;
@@ -45,34 +44,41 @@ export class DeliveriesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   create(
-    @Req() req: Request & { user?: { id?: string } },
+    @Req() req,
     @Body() createDeliveryDto: CreateDeliveryDto,
   ): Promise<any> {
     (createDeliveryDto as any).userId = req.user?.id;
     return this.deliveriesService.create(createDeliveryDto);
   }
 
-  // --- 4. Suivi en temps réel des livraisons (Page 28) ---
+  // --- 4. Mes livraisons ---
+  // Route: GET /deliveries/mine
+  @Get('mine')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  getMyDeliveries(@Req() req): Promise<any[]> {
+    const userId = req.user?.id;
+    return this.deliveriesService.findMine(userId);
+  }
+
+  // --- 5. Suivi en temps réel des livraisons (Page 28) ---
   // Route: GET /deliveries/{id}
   @Get(':id')
-  trackDelivery(@Param('id') id: string): Promise<any> {
+  trackDelivery(@Param('id', ParseIntPipe) id: number): Promise<any> {
     return this.deliveriesService.trackDelivery(id);
   }
 
-  // --- 5. Mettre à jour le statut d'une livraison (transporteur / système) ---
+  // --- 6. Mettre à jour le statut d'une livraison (transporteur / système) ---
   // Route: PATCH /deliveries/:id/status
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   updateStatus(
-    @Req() req: Request & { user?: { id?: string } },
-    @Param('id') id: string,
+    @Req() req,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDeliveryStatusDto,
   ): Promise<any> {
     const actorId = req.user?.id;
     return this.deliveriesService.updateStatus(id, dto.status, actorId);
   }
-  
-  // NOTE: On pourrait ajouter une route PUT /deliveries/:id/update-status 
-  // pour que le transporteur puisse mettre à jour le statut (ex: 'IN_TRANSIT').
 }

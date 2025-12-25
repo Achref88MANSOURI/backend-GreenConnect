@@ -1,11 +1,12 @@
-import { IsUUID, IsString, IsInt, IsOptional, IsNumber } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateDeliveryDto {
   // --- Informations du Demandeur ---
 
-  // L'ID du client qui fait la réservation
-  @IsUUID()
-  userId: string;
+  // L'ID du client qui fait la réservation (renseigné côté serveur)
+  @IsOptional()
+  @IsInt()
+  userId?: number;
 
   // --- Détails de la Marchandise et Trajet ---
 
@@ -32,8 +33,8 @@ export class CreateDeliveryDto {
   // --- Choix du Transporteur ---
   // L'ID du transporteur choisi par le client après la suggestion.
   @IsOptional()
-  @IsUUID()
-  carrierId?: string;
+  @IsInt()
+  carrierId?: number;
 
   // Le coût final calculé est souvent généré par le service, mais une estimation peut être incluse.
 }

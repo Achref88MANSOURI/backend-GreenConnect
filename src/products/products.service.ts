@@ -30,6 +30,41 @@ export class ProductsService {
     return this.repo.find({ relations: ['farmer'] });
   }
 
+  async search(filters: {
+    location?: string;
+    harvestFrom?: string;
+    harvestTo?: string;
+    minQuality?: string;
+    cert?: string;
+  }) {
+    const qb = this.repo.createQueryBuilder('product').leftJoinAndSelect('product.farmer', 'farmer');
+
+    if (filters.location) {
+      qb.andWhere('product.location LIKE :location', { location: `%${filters.location}%` });
+    }
+    if (filters.harvestFrom) {
+      qb.andWhere('product.harvestDate >= :harvestFrom', { harvestFrom: filters.harvestFrom });
+    }
+    if (filters.harvestTo) {
+      qb.andWhere('product.harvestDate <= :harvestTo', { harvestTo: filters.harvestTo });
+    }
+    if (filters.minQuality) {
+      qb.andWhere('product.qualityScore >= :minQuality', { minQuality: Number(filters.minQuality) });
+    }
+    if (filters.cert) {
+      const certs = filters.cert.split(',').map(s => s.trim()).filter(Boolean);
+      if (certs.length > 0) {
+        // simple-array stored as comma-separated string; use LIKE for each
+        const likeClauses = certs.map((c, idx) => `product.certifications LIKE :c${idx}`).join(' OR ');
+        const params = Object.fromEntries(certs.map((c, idx) => [`c${idx}`, `%${c}%`]));
+        qb.andWhere(`(${likeClauses})`, params);
+      }
+    }
+
+    qb.orderBy('product.createdAt', 'DESC');
+    return qb.getMany();
+  }
+
   mine(userId: number) {
     return this.repo.find({
       where: { farmer: { id: userId } },
