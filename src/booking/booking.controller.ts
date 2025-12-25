@@ -3,10 +3,10 @@
 /* eslint-disable prettier/prettier */
 import { Controller, Post, Param, Body, UseGuards, Patch, Get } from '@nestjs/common';
 import { BookingService } from './booking.service';
-import { JwtAuthGuard } from 'src/auth/jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingStatus } from './entities/booking.entity';
-import { User } from 'src/users/decorators/user.decorator';
+import { User } from '../users/decorators/user.decorator';
 
 @Controller('booking')
 @UseGuards(JwtAuthGuard)

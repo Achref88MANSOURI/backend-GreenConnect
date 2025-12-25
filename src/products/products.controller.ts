@@ -21,6 +21,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { UseGuards, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User as UserDecorator } from '../users/decorators/user.decorator';
+import { Query } from '@nestjs/common';
 
 @Controller('products')
 export class ProductsController {
@@ -69,6 +70,18 @@ export class ProductsController {
   @Get()
   findAll() {
     return this.productsService.findAll();
+  }
+
+  // Advanced search aligned with spec: location, harvest date range, quality, certifications
+  @Get('search')
+  async search(
+    @Query('location') location?: string,
+    @Query('harvestFrom') harvestFrom?: string,
+    @Query('harvestTo') harvestTo?: string,
+    @Query('minQuality') minQuality?: string,
+    @Query('cert') cert?: string, // single cert or comma-separated
+  ) {
+    return this.productsService.search({ location, harvestFrom, harvestTo, minQuality, cert });
   }
 
   @Get('mine')

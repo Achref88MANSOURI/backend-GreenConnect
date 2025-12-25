@@ -29,8 +29,8 @@ export class CreateCarrierDto {
   @IsEmail()
   contactEmail: string;
 
-  @IsUUID()
-  userId: string;
+  @IsInt()
+  userId: number;
 
   // --- Caractéristiques du Véhicule ---
   @IsString()

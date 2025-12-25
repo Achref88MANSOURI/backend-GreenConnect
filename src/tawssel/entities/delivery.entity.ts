@@ -1,24 +1,28 @@
 // Utilisez TypeORM pour la persistance des données
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Carrier } from './carrier.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('deliveries')
 export class Delivery {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   // --- Relation avec le Transporteur ---
-  // @ManyToOne permet de lier cette livraison à un seul transporteur
   @ManyToOne(() => Carrier)
   @JoinColumn({ name: 'carrierId' })
   carrier: Carrier;
 
   @Column()
-  carrierId: string; // Clé étrangère
+  carrierId: number;
 
-  // --- Détails du Client et Marchandise ---
+  // --- Détails du Client ---
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
   @Column()
-  userId: string; // Le client qui a fait la réservation
+  userId: number;
 
   @Column()
   goodsType: string; // Type de marchandise (pour la suggestion/tarification)

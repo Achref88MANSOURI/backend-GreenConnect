@@ -48,7 +48,7 @@ export class CarriersService {
   /**
    * Récupère le profil d'un transporteur spécifique (Page 25)
    */
-  async findOne(id: string): Promise<Carrier> {
+  async findOne(id: number): Promise<Carrier> {
     const carrier = await this.carrierRepository.findOne({ where: { id } });
     
     if (!carrier) {
@@ -60,7 +60,7 @@ export class CarriersService {
   /**
    * Met à jour le profil du transporteur
    */
-  async update(id: string, updateCarrierDto: UpdateCarrierDto): Promise<Carrier> {
+  async update(id: number, updateCarrierDto: UpdateCarrierDto): Promise<Carrier> {
     const result = await this.carrierRepository.update(id, updateCarrierDto);
 
     if (result.affected === 0) {
