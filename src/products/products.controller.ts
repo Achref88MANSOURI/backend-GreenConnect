@@ -113,6 +113,50 @@ export class ProductsController {
     return this.productsService.update(id, dto);
   }
 
+  // Update only the product image via multipart upload
+  @Patch(':id/image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          callback(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  async updateImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+    @UserDecorator() user: any,
+  ) {
+    const product = await this.productsService.findOne(id);
+    if (!product) {
+      throw new ForbiddenException('Product not found');
+    }
+    const ownerId = product.farmer?.id ?? null;
+    if (!ownerId || ownerId !== user?.id) {
+      throw new ForbiddenException('You are not allowed to modify this product');
+    }
+
+    // ensure uploads folder exists
+    if (!existsSync('./uploads')) {
+      mkdirSync('./uploads', { recursive: true });
+    }
+
+    const files: any[] = req?.files || [];
+    const file = files[0];
+    if (!file) {
+      // No file provided, nothing to update
+      return this.productsService.findOne(id);
+    }
+
+    await this.productsService.update(id, { imageUrl: file.filename } as UpdateProductDto);
+    return this.productsService.findOne(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async remove(
