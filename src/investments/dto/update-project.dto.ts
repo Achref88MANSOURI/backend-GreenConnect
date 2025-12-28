@@ -4,6 +4,7 @@ import { IsOptional, IsIn } from 'class-validator';
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @IsOptional()
-  @IsIn(['active', 'funded', 'closed'])
+  @IsIn(['available', 'reserved', 'leased', 'closed'])
   status?: string;
 }
+
