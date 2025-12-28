@@ -12,7 +12,10 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { InvestmentsService } from './investments.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -23,76 +26,90 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 export class InvestmentsController {
   constructor(private readonly investmentsService: InvestmentsService) {}
 
-  // ========== PROJECT ENDPOINTS ==========
+  // ========== LAND LISTING ENDPOINTS ==========
 
-  @Get('projects')
-  async findAllProjects(
+  @Get('lands')
+  async findAllListings(
     @Query('status') status?: string,
     @Query('category') category?: string,
     @Query('location') location?: string,
-    @Query('minAmount') minAmount?: number,
-    @Query('maxAmount') maxAmount?: number,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('minArea') minArea?: number,
+    @Query('maxArea') maxArea?: number,
   ) {
     return this.investmentsService.findAllProjects({
       status,
       category,
       location,
-      minAmount,
-      maxAmount,
+      minPrice,
+      maxPrice,
+      minArea,
+      maxArea,
     });
   }
 
-  @Get('projects/my')
+  @Get('my-listings')
   @UseGuards(JwtAuthGuard)
-  async getMyProjects(@Req() req) {
-    return this.investmentsService.getMyProjects(req.user.id);
+  async getMyListings(@Req() req) {
+    return this.investmentsService.getMyListings(req.user.id);
   }
 
-  @Get('projects/:id')
-  async findProjectById(@Param('id', ParseIntPipe) id: number) {
+  @Get('lands/:id')
+  async findListingById(@Param('id', ParseIntPipe) id: number) {
     return this.investmentsService.findProjectById(id);
   }
 
-  @Post('projects')
+  @Post('lands')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  async createProject(
+  @UseInterceptors(FilesInterceptor('images', 10)) // max 10 images
+  async createListing(
     @Body() dto: CreateProjectDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req,
   ) {
-    return this.investmentsService.createProject(dto, req.user.id);
+    return this.investmentsService.createProject(dto, req.user.id, files);
   }
 
-  @Patch('projects/:id')
+  @Patch('lands/:id')
   @UseGuards(JwtAuthGuard)
-  async updateProject(
+  @UseInterceptors(FilesInterceptor('images', 10)) // max 10 images
+  async updateListing(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProjectDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req,
   ) {
-    return this.investmentsService.updateProject(id, dto, req.user.id);
+    return this.investmentsService.updateProject(id, dto, req.user.id, files);
   }
 
-  @Delete('projects/:id')
+  @Delete('lands/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteProject(
+  async deleteListing(
     @Param('id', ParseIntPipe) id: number,
     @Req() req,
   ) {
     await this.investmentsService.deleteProject(id, req.user.id);
   }
 
-  // ========== INVESTMENT ENDPOINTS ==========
+  // ========== LEASE REQUEST ENDPOINTS ==========
 
-  @Post('invest')
+  @Post('lease-request')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  async createInvestment(
+  async createLeaseRequest(
     @Body() dto: CreateInvestmentDto,
     @Req() req,
   ) {
-    return this.investmentsService.createInvestment(dto, req.user.id);
+    return this.investmentsService.createLeaseRequest(dto, req.user.id);
+  }
+
+  @Get('my-leases')
+  @UseGuards(JwtAuthGuard)
+  async getMyLeases(@Req() req) {
+    return this.investmentsService.getMyLeaseRequests(req.user.id);
   }
 
   @Get('my-investments')
@@ -101,21 +118,57 @@ export class InvestmentsController {
     return this.investmentsService.getMyInvestments(req.user.id);
   }
 
-  @Get('projects/:id/investors')
+  @Get('lands/:id/lease-requests')
   @UseGuards(JwtAuthGuard)
-  async getProjectInvestors(@Param('id', ParseIntPipe) id: number) {
-    return this.investmentsService.getProjectInvestors(id);
+  async getListingLeaseRequests(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    return this.investmentsService.getListingLeaseRequests(id, req.user.id);
   }
 
-  @Get('projects/:id/investments')
+  @Patch('leases/:id/approve')
   @UseGuards(JwtAuthGuard)
-  async getProjectInvestments(@Param('id', ParseIntPipe) id: number) {
-    return this.investmentsService.getProjectInvestments(id);
+  async approveLeaseRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    return this.investmentsService.approveLeaseRequest(id, req.user.id);
+  }
+
+  @Patch('leases/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  async rejectLeaseRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    return this.investmentsService.rejectLeaseRequest(id, req.user.id);
+  }
+
+  @Patch('leases/:id/start')
+  @UseGuards(JwtAuthGuard)
+  async startLease(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    // Not implemented
+    return { message: 'Not yet implemented' };
+  }
+
+  @Patch('leases/:id/complete')
+  @UseGuards(JwtAuthGuard)
+  async completeLease(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    // Not implemented
+    return { message: 'Not yet implemented' };
   }
 
   @Get('stats')
   @UseGuards(JwtAuthGuard)
   async getStats(@Req() req) {
-    return this.investmentsService.getInvestmentStats(req.user.id);
+    return this.investmentsService.getRentalStats(req.user.id);
   }
 }
+

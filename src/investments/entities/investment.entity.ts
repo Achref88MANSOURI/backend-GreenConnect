@@ -14,28 +14,34 @@ export class InvestmentProject {
   description: string;
 
   @Column({ nullable: true })
-  category: string; // 'Olives & Trees', 'Greenhouse', 'Cold Storage', 'Renewables', etc.
+  category: string; // 'Wheat', 'Olives', 'Dates', etc.
 
   @Column({ nullable: true })
   location: string;
 
-  // Financial details (aligned with frontend naming)
+  // Land rental fields (mapped to old columns for compatibility)
   @Column('decimal', { precision: 12, scale: 2 })
-  targetAmount: number; // Total funding goal
+  targetAmount: number; // Mapped from: areaHectares (using targetAmount column)
 
   @Column('decimal', { precision: 12, scale: 2, default: 0 })
-  currentAmount: number; // Current amount raised
+  currentAmount: number; // Mapped from: leasePrice (using currentAmount column)
 
   @Column('decimal', { precision: 12, scale: 2 })
-  minimumInvestment: number; // Minimum investment amount
+  minimumInvestment: number; // Mapped from: minSeasonMonths
 
   @Column('decimal', { precision: 5, scale: 2 })
-  expectedROI: number; // Expected return on investment (percentage)
+  expectedROI: number; // Mapped from: maxSeasonMonths (stored as percentage)
 
   @Column({ type: 'int', default: 12 })
-  duration: number; // Duration in months
+  duration: number; // Minimum lease duration in months
 
-  // Project owner (farmer/entrepreneur)
+  @Column({ type: 'date', nullable: true })
+  availableFrom: Date; // Mapped from: availableFrom
+
+  @Column({ type: 'date', nullable: true })
+  fundingDeadline: Date; // Mapped from: availableUntil
+
+  // Project owner (land owner/farmer)
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'ownerId' })
   owner: User;
@@ -43,13 +49,13 @@ export class InvestmentProject {
   @Column()
   ownerId: number;
 
-  // Status
-  @Column({ default: 'active' }) // active, funded, closed
+  // Status: available, reserved, leased, completed
+  @Column({ default: 'available' }) // available, reserved, leased, completed
   status: string;
 
   // Media
   @Column('simple-array', { nullable: true })
-  images: string[]; // image URLs
+  images: string[];
 
   // Timestamps
   @CreateDateColumn()
@@ -57,9 +63,6 @@ export class InvestmentProject {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Column({ type: 'date', nullable: true })
-  fundingDeadline: Date;
 
   // Relations
   @OneToMany(() => Investment, investment => investment.project)
@@ -80,24 +83,27 @@ export class Investment {
 
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'investorId' })
-  investor: User;
+  investor: User; // Investor (in original) or Farmer renting (in new model)
 
   @Column()
   investorId: number;
 
+  // Amount invested (in original) or rent total (in new model)
   @Column('decimal', { precision: 12, scale: 2 })
   amount: number;
+
+  // Returns received (in original) or amount paid (in new model)
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  returnsReceived: number;
 
   @Column({ default: 'ACTIVE' }) // ACTIVE, WITHDRAWN, COMPLETED
   status: string;
 
   @CreateDateColumn()
-  investedAt: Date;
-
-  // Returns tracking
-  @Column('decimal', { precision: 12, scale: 2, default: 0 })
-  returnsReceived: number;
+  investedAt: Date; // When the lease request was made
 
   @Column({ nullable: true })
   notes: string;
 }
+
+
