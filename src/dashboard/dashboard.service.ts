@@ -169,72 +169,65 @@ export class DashboardService {
   }
 
   async getInvestorDashboard(userId: number) {
-    // Investments made by user
-    const investments = await this.investmentRepo.find({
+    // Leases (rentals) made by user
+    const leases = await this.investmentRepo.find({
       where: { investorId: userId },
       relations: ['project'],
     });
 
-    const totalInvested = investments.reduce(
-      (sum, inv) => sum + Number(inv.amount),
+    const totalRentPaid = leases.reduce(
+      (sum, lease) => sum + Number(lease.returnsReceived),
       0,
     );
 
-    const activeInvestments = investments.filter(
-      inv => inv.status === 'ACTIVE',
+    const activeLeases = leases.filter(
+      lease => lease.status === 'ACTIVE',
     ).length;
 
-    const totalReturns = investments.reduce(
-      (sum, inv) => sum + Number(inv.returnsReceived),
-      0,
-    );
-
-    // Projects owned by user
-    const projects = await this.projectRepo.find({
+    // Lands owned by user
+    const lands = await this.projectRepo.find({
       where: { ownerId: userId },
       relations: ['investments'],
     });
 
-    const totalRaised = projects.reduce(
-      (sum, proj) => sum + Number(proj.currentAmount),
+    const totalIncome = lands.reduce(
+      (sum, land) => sum + Number(land.currentAmount),
       0,
     );
 
     return {
-      asInvestor: {
-        totalInvestments: investments.length,
-        activeInvestments,
-        totalInvested,
-        totalReturns,
-        roi: totalInvested > 0 ? ((totalReturns / totalInvested) * 100).toFixed(2) : 0,
-        portfolioValue: totalInvested + totalReturns,
+      asRenter: {
+        totalLeases: leases.length,
+        activeLeases,
+        totalRentPaid,
+        portfolioValue: totalRentPaid,
       },
-      asProjectOwner: {
-        totalProjects: projects.length,
-        activeProjects: projects.filter(p => p.status === 'active').length,
-        fundedProjects: projects.filter(p => p.status === 'funded').length,
-        totalRaised,
-        totalInvestors: projects.reduce(
-          (sum, proj) => sum + (proj.investments?.length || 0),
+      asLandOwner: {
+        totalLands: lands.length,
+        activeLands: lands.filter(l => l.status === 'active').length,
+        reservedLands: lands.filter(l => l.status === 'funded').length,
+        totalPotentialIncome: totalIncome,
+        totalLeaseRequests: lands.reduce(
+          (sum, land) => sum + (land.investments?.length || 0),
           0,
         ),
       },
-      recentInvestments: investments.slice(0, 5).map(inv => ({
-        id: inv.id,
-        amount: inv.amount,
-        projectTitle: inv.project?.title,
-        status: inv.status,
-        returnsReceived: inv.returnsReceived,
-        investedAt: inv.investedAt,
+      recentLeases: leases.slice(0, 5).map(lease => ({
+        id: lease.id,
+        rentAmount: lease.amount,
+        landTitle: lease.project?.title,
+        status: lease.status,
+        paidAmount: lease.returnsReceived,
+        requestedAt: lease.investedAt,
       })),
-      projectsSummary: projects.slice(0, 5).map(proj => ({
-        id: proj.id,
-        title: proj.title,
-        targetAmount: proj.targetAmount,
-        currentAmount: proj.currentAmount,
-        status: proj.status,
-        investorCount: proj.investments?.length || 0,
-        fundingProgress: ((Number(proj.currentAmount) / Number(proj.targetAmount)) * 100).toFixed(1),
+      landsSummary: lands.slice(0, 5).map(land => ({
+        id: land.id,
+        title: land.title,
+        areaHectares: land.targetAmount,
+        leasePrice: land.currentAmount,
+        status: land.status,
+        leaseRequestCount: land.investments?.length || 0,
+        potentialMonthlyIncome: Number(land.currentAmount),
       })),
     };
   }
@@ -411,9 +404,9 @@ export class DashboardService {
 
     investments.forEach(i =>
       activities.push({
-        type: 'investment',
+        type: 'lease',
         id: i.id,
-        description: `Invested in ${i.project?.title}`,
+        description: `Lease request for ${i.project?.title}`,
         amount: i.amount,
         date: i.investedAt,
       }),
