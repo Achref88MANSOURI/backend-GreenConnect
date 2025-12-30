@@ -218,6 +218,10 @@ export class InvestmentsService {
       throw new BadRequestException('You can only delete your own listings');
     }
 
+    // First, delete all associated lease requests (investments)
+    await this.investmentRepo.delete({ projectId: id });
+
+    // Then delete the land listing itself
     await this.projectRepo.delete(id);
   }
 
@@ -455,5 +459,44 @@ export class InvestmentsService {
     }
 
     return saved;
+  }
+
+  /**
+   * Cancel a lease request (renter cancels their own pending request)
+   */
+  async cancelLeaseRequest(leaseId: number, renterId: number): Promise<void> {
+    const lease = await this.investmentRepo.findOne({
+      where: { id: leaseId },
+      relations: ['project'],
+    });
+
+    if (!lease) {
+      throw new NotFoundException(`Lease request ${leaseId} not found`);
+    }
+
+    if (lease.investorId !== renterId) {
+      throw new BadRequestException('You can only cancel your own lease requests');
+    }
+
+    // Only allow cancellation of pending requests
+    if (lease.status !== 'ACTIVE') {
+      throw new BadRequestException('You can only cancel pending requests');
+    }
+
+    // Delete the lease request
+    await this.investmentRepo.delete(leaseId);
+
+    // If no other pending/approved requests remain, free the land
+    const remaining = await this.investmentRepo.count({
+      where: {
+        projectId: lease.projectId,
+        status: In(['ACTIVE', 'APPROVED']),
+      },
+    });
+
+    if (remaining === 0) {
+      lease.project.status = 'available';
+      await this.projectRepo.save(lease.project);
+    }
   }
 }
