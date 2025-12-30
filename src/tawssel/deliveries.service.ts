@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Delivery } from './entities/delivery.entity';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { CarriersService } from './carriers.service'; // Pour l'intégration
 import { Carrier } from './entities/carrier.entity';
 import { SubmitReviewDto } from './dto/submit-review.dto'; // Nouveau DTO
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class DeliveriesService {
@@ -15,7 +16,7 @@ export class DeliveriesService {
     @InjectRepository(Carrier)
     private readonly carrierRepository: Repository<Carrier>, // Ajout du Repository Carrier
     private readonly carriersService: CarriersService, // Service pour obtenir les transporteurs
-    // NOTE: Dans un cas réel, vous injecteriez un service GeoLocation pour calculer la distance
+    private readonly notificationsService: NotificationsService, // Service pour les notifications
   ) {}
 
   // =========================================================================
@@ -38,11 +39,14 @@ export class DeliveriesService {
       return [];
     }
 
+    // Récupérer l'ID utilisateur depuis le DTO
+    const userId = (dto as any).userId;
+
     // 3. Filtrage basé sur les critères de la demande (Capacité, Zones, Disponibilité)
     const suggestions = availableCarriers
       .filter(c => c.capacity_kg >= dto.weight_kg) // Filtrer par capacité
       .filter(c => c.status === 'Active') // S'assurer qu'ils sont actifs
-      // NOTE: Le filtrage par zone/disponibilité serait complexe et nécessiterait une logique géospatiale
+      .filter(c => c.userId !== userId) // Exclure les propres camions de l'utilisateur
 
       // 4. Calculer le coût pour chaque transporteur éligible
       .map(carrier => {
@@ -54,8 +58,11 @@ export class DeliveriesService {
           carrierId: carrier.id,
           companyName: carrier.companyName,
           averageRating: carrier.averageRating,
+          vehicleType: carrier.vehicleType,
+          capacity_kg: carrier.capacity_kg,
           estimatedCost: totalCost,
           estimatedDistance: distance_km,
+          ownerName: carrier.user?.name || 'Inconnu',
         };
       })
       // 5. Trier par coût ou par évaluation (Optimisation)
@@ -81,6 +88,12 @@ export class DeliveriesService {
     const distance_km = 150; 
     const selectedCarrier = await this.carriersService.findOne(createDeliveryDto.carrierId);
     
+    // Vérifier que l'utilisateur ne réserve pas son propre camion
+    const userId = (createDeliveryDto as any).userId;
+    if (selectedCarrier.userId === userId) {
+      throw new BadRequestException("Vous ne pouvez pas réserver votre propre camion.");
+    }
+    
     const baseCost = distance_km * selectedCarrier.pricePerKm;
     const weightCost = selectedCarrier.pricePerTonne ? (createDeliveryDto.weight_kg / 1000) * selectedCarrier.pricePerTonne : 0;
     const totalCost = baseCost + weightCost;
@@ -90,10 +103,28 @@ export class DeliveriesService {
       desiredDeliveryDate: new Date(createDeliveryDto.desiredDeliveryDate),
       distance_km,
       totalCost,
-      status: 'PENDING_PICKUP', // Statut initial
+      status: 'PENDING', // Statut initial - en attente d'approbation
     });
     
-    return this.deliveryRepository.save(newDelivery);
+    const savedDelivery = await this.deliveryRepository.save(newDelivery);
+
+    // Envoyer une notification au propriétaire du transporteur
+    // Récupérer le nom du client
+    const delivery = await this.deliveryRepository.findOne({
+      where: { id: savedDelivery.id },
+      relations: ['user'],
+    });
+    
+    const clientName = delivery?.user?.name || 'Un client';
+    
+    await this.notificationsService.notifyNewReservation(
+      selectedCarrier.userId,
+      savedDelivery.id,
+      clientName,
+      createDeliveryDto.goodsType,
+    );
+
+    return savedDelivery;
   }
 
   // =========================================================================
@@ -106,16 +137,13 @@ export class DeliveriesService {
   async trackDelivery(id: number): Promise<Delivery> {
     const delivery = await this.deliveryRepository.findOne({ 
       where: { id },
-      relations: ['carrier'], // Inclure les infos du transporteur pour le suivi
+      relations: ['carrier', 'carrier.user', 'user'], // Inclure les infos du transporteur et du client
     });
 
     if (!delivery) {
       throw new NotFoundException(`Suivi de livraison impossible: ID ${id} non trouvé.`);
     }
     
-    // NOTE: Le service pourrait ici faire un appel à un service externe de géolocalisation
-    // pour obtenir la position GPS en temps réel si le statut est 'IN_TRANSIT'.
-
     return delivery;
   }
 
@@ -171,7 +199,10 @@ export class DeliveriesService {
    * Met à jour le statut d'une livraison.
    */
   async updateStatus(id: number, status: string, actorId?: number): Promise<Delivery> {
-    const delivery = await this.deliveryRepository.findOne({ where: { id } });
+    const delivery = await this.deliveryRepository.findOne({ 
+      where: { id },
+      relations: ['carrier'],
+    });
     if (!delivery) {
       throw new NotFoundException(`Livraison ID ${id} introuvable.`);
     }
@@ -187,8 +218,128 @@ export class DeliveriesService {
   async findMine(userId: number): Promise<Delivery[]> {
     return this.deliveryRepository.find({
       where: { userId },
-      relations: ['carrier'],
+      relations: ['carrier', 'carrier.user'],
       order: { id: 'DESC' },
     });
+  }
+
+  /**
+   * Récupère les demandes de réservation reçues pour les camions de l'utilisateur.
+   */
+  async findReceivedRequests(userId: number): Promise<Delivery[]> {
+    // D'abord, trouver tous les carriers de l'utilisateur
+    const userCarriers = await this.carrierRepository.find({
+      where: { userId },
+      select: ['id'],
+    });
+
+    if (userCarriers.length === 0) {
+      return [];
+    }
+
+    const carrierIds = userCarriers.map(c => c.id);
+
+    // Ensuite, trouver toutes les livraisons pour ces carriers
+    return this.deliveryRepository.find({
+      where: { carrierId: In(carrierIds) },
+      relations: ['carrier', 'user'],
+      order: { id: 'DESC' },
+    });
+  }
+
+  /**
+   * Accepter une demande de réservation (par le propriétaire du camion).
+   */
+  async acceptDelivery(id: number, ownerId: number): Promise<Delivery> {
+    const delivery = await this.deliveryRepository.findOne({
+      where: { id },
+      relations: ['carrier'],
+    });
+
+    if (!delivery) {
+      throw new NotFoundException(`Livraison ID ${id} introuvable.`);
+    }
+
+    // Vérifier que l'utilisateur est le propriétaire du camion
+    if (delivery.carrier.userId !== ownerId) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à accepter cette demande.');
+    }
+
+    if (delivery.status !== 'PENDING') {
+      throw new BadRequestException('Seules les demandes en attente peuvent être acceptées.');
+    }
+
+    delivery.status = 'ACCEPTED';
+    const savedDelivery = await this.deliveryRepository.save(delivery);
+
+    // Envoyer une notification au client
+    await this.notificationsService.notifyReservationAccepted(
+      delivery.userId,
+      delivery.id,
+      delivery.carrier.companyName,
+    );
+
+    return savedDelivery;
+  }
+
+  /**
+   * Refuser une demande de réservation (par le propriétaire du camion).
+   */
+  async rejectDelivery(id: number, ownerId: number): Promise<Delivery> {
+    const delivery = await this.deliveryRepository.findOne({
+      where: { id },
+      relations: ['carrier'],
+    });
+
+    if (!delivery) {
+      throw new NotFoundException(`Livraison ID ${id} introuvable.`);
+    }
+
+    // Vérifier que l'utilisateur est le propriétaire du camion
+    if (delivery.carrier.userId !== ownerId) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à refuser cette demande.');
+    }
+
+    if (delivery.status !== 'PENDING') {
+      throw new BadRequestException('Seules les demandes en attente peuvent être refusées.');
+    }
+
+    delivery.status = 'REJECTED';
+    const savedDelivery = await this.deliveryRepository.save(delivery);
+
+    // Envoyer une notification au client
+    await this.notificationsService.notifyReservationRejected(
+      delivery.userId,
+      delivery.id,
+      delivery.carrier.companyName,
+    );
+
+    return savedDelivery;
+  }
+
+  /**
+   * Annuler une réservation (par le client) - SUPPRIME la réservation.
+   */
+  async cancelDelivery(id: number, userId: number): Promise<void> {
+    const delivery = await this.deliveryRepository.findOne({
+      where: { id },
+    });
+
+    if (!delivery) {
+      throw new NotFoundException(`Livraison ID ${id} introuvable.`);
+    }
+
+    // Vérifier que l'utilisateur est le propriétaire de la réservation
+    if (delivery.userId !== userId) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à annuler cette réservation.');
+    }
+
+    // On ne peut annuler que les réservations en attente ou acceptées
+    if (!['PENDING', 'ACCEPTED'].includes(delivery.status)) {
+      throw new BadRequestException('Cette réservation ne peut plus être annulée.');
+    }
+
+    // Supprimer la réservation au lieu de la marquer comme annulée
+    await this.deliveryRepository.remove(delivery);
   }
 }

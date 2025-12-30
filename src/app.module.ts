@@ -17,6 +17,7 @@ import { TawsselModule } from './tawssel/tawssel.module';
 import { AdminModule } from './admin/admin.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { InvestmentProject } from './investments/entities/investment.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -27,14 +28,14 @@ import { InvestmentProject } from './investments/entities/investment.entity';
     // Serve static assets from the frontend public folder (safe in dev)
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'front-end', 'public'),
-      exclude: ['/api/(.*)'],
+      exclude: ['/api/{*path}'],
     }),
 
     // Serve uploaded files
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
-      exclude: ['/api/(.*)'],
+      exclude: ['/api/{*path}'],
     }),
 
     TypeOrmModule.forRoot({
@@ -54,6 +55,7 @@ import { InvestmentProject } from './investments/entities/investment.entity';
     TawsselModule,
     InvestmentsModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [

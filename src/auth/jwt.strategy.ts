@@ -18,7 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException();
     }
-    // attach minimal user info to request.user
-    return { id: user.id, email: user.email, role: (user as any).role };
+    // attach user info to request.user including name for product creation
+    return { id: user.id, email: user.email, name: user.name, role: (user as any).role };
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, HttpStatus, HttpCode, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, HttpStatus, HttpCode, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
 import { DeliveriesService } from './deliveries.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { SubmitReviewDto } from './dto/submit-review.dto';
@@ -51,7 +51,7 @@ export class DeliveriesController {
     return this.deliveriesService.create(createDeliveryDto);
   }
 
-  // --- 4. Mes livraisons ---
+  // --- 4. Mes livraisons (réservations que j'ai faites) ---
   // Route: GET /deliveries/mine
   @Get('mine')
   @UseGuards(JwtAuthGuard)
@@ -61,14 +61,24 @@ export class DeliveriesController {
     return this.deliveriesService.findMine(userId);
   }
 
-  // --- 5. Suivi en temps réel des livraisons (Page 28) ---
+  // --- 5. Demandes reçues (réservations pour mes camions) ---
+  // Route: GET /deliveries/received
+  @Get('received')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  getReceivedRequests(@Req() req): Promise<any[]> {
+    const userId = req.user?.id;
+    return this.deliveriesService.findReceivedRequests(userId);
+  }
+
+  // --- 6. Suivi en temps réel des livraisons (Page 28) ---
   // Route: GET /deliveries/{id}
   @Get(':id')
   trackDelivery(@Param('id', ParseIntPipe) id: number): Promise<any> {
     return this.deliveriesService.trackDelivery(id);
   }
 
-  // --- 6. Mettre à jour le statut d'une livraison (transporteur / système) ---
+  // --- 7. Mettre à jour le statut d'une livraison (transporteur / système) ---
   // Route: PATCH /deliveries/:id/status
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
@@ -80,5 +90,45 @@ export class DeliveriesController {
   ): Promise<any> {
     const actorId = req.user?.id;
     return this.deliveriesService.updateStatus(id, dto.status, actorId);
+  }
+
+  // --- 8. Accepter une demande de réservation ---
+  // Route: PATCH /deliveries/:id/accept
+  @Patch(':id/accept')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  acceptDelivery(
+    @Req() req,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<any> {
+    const ownerId = req.user?.id;
+    return this.deliveriesService.acceptDelivery(id, ownerId);
+  }
+
+  // --- 9. Refuser une demande de réservation ---
+  // Route: PATCH /deliveries/:id/reject
+  @Patch(':id/reject')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  rejectDelivery(
+    @Req() req,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<any> {
+    const ownerId = req.user?.id;
+    return this.deliveriesService.rejectDelivery(id, ownerId);
+  }
+
+  // --- 10. Supprimer une réservation (par le client) ---
+  // Route: DELETE /deliveries/:id
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async cancelDelivery(
+    @Req() req,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ message: string }> {
+    const userId = req.user?.id;
+    await this.deliveriesService.cancelDelivery(id, userId);
+    return { message: 'Réservation annulée avec succès' };
   }
 }
