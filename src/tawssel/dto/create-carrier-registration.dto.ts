@@ -28,6 +28,9 @@ export class CreateCarrierRegistrationDto {
   contactEmail: string;
 
   @IsString()
+  contactPhone: string;
+
+  @IsString()
   vehicleType: string;
 
   @IsInt()
