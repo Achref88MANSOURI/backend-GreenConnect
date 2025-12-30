@@ -145,6 +145,16 @@ export class InvestmentsController {
     return this.investmentsService.rejectLeaseRequest(id, req.user.id);
   }
 
+  @Delete('leases/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async cancelLeaseRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    await this.investmentsService.cancelLeaseRequest(id, req.user.id);
+  }
+
   @Patch('leases/:id/start')
   @UseGuards(JwtAuthGuard)
   async startLease(
