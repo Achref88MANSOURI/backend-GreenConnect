@@ -53,8 +53,12 @@ export class ProductsController {
       mkdirSync('./uploads', { recursive: true });
     }
 
-    // helpful debug log — remove in production
-    console.log('uploadProductImage - received file:', !!file, file && file.filename);
+    // Log file upload for debugging
+    if (file) {
+      console.log(`✅ Product image uploaded: ${file.filename}`);
+    } else {
+      console.log('⚠️  No image provided for product');
+    }
 
     // Allow creating a product without an image; imageUrl stays undefined/null
     return this.productsService.create(

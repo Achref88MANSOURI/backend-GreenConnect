@@ -15,6 +15,9 @@ export class Carrier {
   @Column()
   contactEmail: string;
 
+  @Column({ nullable: true })
+  contactPhone?: string;
+
   // L'utilisateur lié à ce transporteur
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'userId' })
