@@ -29,6 +29,10 @@ export class CreateCarrierDto {
   @IsEmail()
   contactEmail: string;
 
+  @IsOptional()
+  @IsString()
+  contactPhone?: string;
+
   @IsInt()
   userId: number;
 
@@ -58,4 +62,8 @@ export class CreateCarrierDto {
   @ValidateNested({ each: true })
   @Type(() => AvailabilityDto)
   availability: AvailabilityDto[];
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
