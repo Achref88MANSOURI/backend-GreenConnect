@@ -8,6 +8,7 @@ import { InvestmentProject, Investment } from './entities/investment.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InvestmentsService {
@@ -16,6 +17,7 @@ export class InvestmentsService {
     private readonly projectRepo: Repository<InvestmentProject>,
     @InjectRepository(Investment)
     private readonly investmentRepo: Repository<Investment>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ========== LAND LISTING MANAGEMENT ==========
@@ -281,8 +283,19 @@ export class InvestmentsService {
     // Mark project as reserved while a request is pending
     project.status = 'reserved';
     await this.projectRepo.save(project);
+    const saved = await this.investmentRepo.save(investment);
 
-    return this.investmentRepo.save(investment);
+    // Notify owner of new request
+    await this.notificationsService.create({
+      userId: project.ownerId,
+      type: 'LEASE_REQUEST',
+      title: 'Nouvelle demande de location',
+      message: `${project.title || 'Votre terre'} a une nouvelle demande de location`,
+      relatedId: saved.id,
+      relatedType: 'lease',
+    });
+
+    return saved;
   }
 
   /**
@@ -324,7 +337,6 @@ export class InvestmentsService {
       .leftJoinAndSelect('investment.project', 'project')
       .leftJoinAndSelect('project.owner', 'owner')
       .where('investment.investorId = :userId', { userId })
-      .andWhere('investment.status IN (:...statuses)', { statuses: ['ACTIVE', 'APPROVED'] })
       .orderBy('investment.investedAt', 'DESC')
       .getMany();
 
@@ -422,6 +434,16 @@ export class InvestmentsService {
     lease.project.status = 'leased';
     await this.projectRepo.save(lease.project);
 
+    // Notify renter that their lease was approved
+    await this.notificationsService.create({
+      userId: lease.investorId,
+      type: 'LEASE_APPROVED',
+      title: 'Location acceptée ✅',
+      message: `Votre demande pour ${lease.project.title || 'une terre'} a été acceptée`,
+      relatedId: lease.id,
+      relatedType: 'lease',
+    });
+
     return updated;
   }
 
@@ -458,6 +480,16 @@ export class InvestmentsService {
       await this.projectRepo.save(lease.project);
     }
 
+    // Notify renter that their lease was rejected
+    await this.notificationsService.create({
+      userId: lease.investorId,
+      type: 'LEASE_REJECTED',
+      title: 'Location refusée',
+      message: `Votre demande pour ${lease.project.title || 'une terre'} a été refusée`,
+      relatedId: lease.id,
+      relatedType: 'lease',
+    });
+
     return saved;
   }
 
@@ -478,12 +510,7 @@ export class InvestmentsService {
       throw new BadRequestException('You can only cancel your own lease requests');
     }
 
-    // Only allow cancellation of pending requests
-    if (lease.status !== 'ACTIVE') {
-      throw new BadRequestException('You can only cancel pending requests');
-    }
-
-    // Delete the lease request
+    // Allow renter to remove the lease entry whatever the decision (pending/approved/rejected)
     await this.investmentRepo.delete(leaseId);
 
     // If no other pending/approved requests remain, free the land
