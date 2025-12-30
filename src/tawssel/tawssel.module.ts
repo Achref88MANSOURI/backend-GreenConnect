@@ -13,6 +13,9 @@ import { DeliveriesController } from './deliveries.controller';
 import { CarriersService } from './carriers.service';
 import { DeliveriesService } from './deliveries.service';
 
+// Import du module Notifications
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
   // 1. Déclarer les entités pour TypeORM :
   imports: [
@@ -20,6 +23,7 @@ import { DeliveriesService } from './deliveries.service';
       Carrier, // Pour la gestion des transporteurs
       Delivery, // Pour la gestion des livraisons/suivi
     ]),
+    NotificationsModule, // Pour envoyer des notifications
   ],
   // 2. Déclarer les contrôleurs (gestion des routes API) :
   controllers: [

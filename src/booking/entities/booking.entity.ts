@@ -21,6 +21,9 @@ export class Booking {
   @Column()
   endDate: Date;
 
+  @Column({ nullable: true })
+  phoneNumber: string;
+
   @Column({
     type: 'simple-enum',
     enum: BookingStatus,

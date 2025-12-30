@@ -6,6 +6,7 @@ import { Booking, BookingStatus } from './entities/booking.entity';
 import { Equipment } from '../equipment/entities/equipment.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { User } from '../users/entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BookingService {
@@ -15,6 +16,8 @@ export class BookingService {
 
     @InjectRepository(Equipment)
     private eqRepo: Repository<Equipment>,
+
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(eqId: number, dto: CreateBookingDto, user: User) {
@@ -51,22 +54,52 @@ export class BookingService {
     const booking = this.repo.create({
       startDate: dto.startDate,
       endDate: dto.endDate,
+      phoneNumber: dto.phoneNumber,
       user,
       equipment: eq,
     });
 
-    return this.repo.save(booking);
+    const savedBooking = await this.repo.save(booking);
+
+    // Notify equipment owner about new booking request
+    await this.notificationsService.create({
+      userId: eq.owner.id,
+      type: 'booking_request',
+      title: 'Nouvelle demande de réservation',
+      message: `${user.name || user.email} souhaite réserver votre équipement "${eq.name}"`,
+      relatedId: savedBooking.id,
+      relatedType: 'booking',
+    });
+
+    return savedBooking;
   }
 
   async updateStatus(id: number, status: BookingStatus, owner: User) {
     const booking = await this.repo.findOne({
       where: { id },
-      relations: ['equipment', 'equipment.owner'],
+      relations: ['equipment', 'equipment.owner', 'user'],
     });
 
     if (!booking) throw new NotFoundException();
     if (booking.equipment.owner.id !== owner.id) {
       throw new ForbiddenException('Not your equipment');
+    }
+
+    // Notify the requester about the status change
+    const statusText = status === BookingStatus.APPROVED ? 'acceptée' : 'refusée';
+    await this.notificationsService.create({
+      userId: booking.user.id,
+      type: status === BookingStatus.APPROVED ? 'booking_approved' : 'booking_rejected',
+      title: `Demande ${statusText}`,
+      message: `Votre demande de réservation pour "${booking.equipment.name}" a été ${statusText}`,
+      relatedId: id,
+      relatedType: 'booking',
+    });
+
+    // If rejected, delete the booking entirely
+    if (status === BookingStatus.REJECTED) {
+      await this.repo.remove(booking);
+      return { message: 'Booking rejected and deleted', id };
     }
 
     booking.status = status;
